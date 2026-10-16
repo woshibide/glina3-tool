@@ -10,8 +10,8 @@ It will live on the client's website (Kirby CMS with Vue), on laptops, tablets, 
 - `../../0_input/MADE_AFTER_DEMAND.html` is the client's own prototype.
   It fakes the cup in Canvas2D and has the product logic (image, drawing, and text layers turned into a relief heightmap; small/large sizes; pink and denim glazes).
   Treat it as a feature reference only, not as code to port.
-- The current phase is the interaction prototype: drawing, baking, sharing, and a mocked order.
-  The visual design is deliberately quiet and Wikipedia-like until the website design exists.
+- On `main`, the current phase is the strip-down and revamp that fits the tool into the website.
+  The full interaction prototype (drawing, baking, sharing, a mocked order, with a quiet Wikipedia-like look) is parked on `ux-research`.
 
 ## Git
 
@@ -19,7 +19,11 @@ It will live on the client's website (Kirby CMS with Vue), on laptops, tablets, 
   The website repository (`woshibide/glina3-web`) includes this repository as the `tool/` submodule and tracks `main`.
 - `ux-research` parks the interaction prototype as it was before the revamp (commit `aac9252`).
   Do not merge it back; cherry-pick single ideas from it when needed.
-- Push here first, then move the pin in the website: `git submodule update --remote tool` in `../www`.
+- This folder (`2_development/tool`) is the checkout for editing the tool.
+  `../www/tool` is the website's submodule copy at a pinned commit (detached HEAD); do not edit there.
+- Push here first, then move the pin on the website's `develop` branch: `git submodule update --remote tool` in `../www`, then commit `tool`.
+  The full workflow, both repositories' branches, and the clone steps are in `../www/README.md` ("Repositories and Git").
+- The website's dev server also uses port 5173; when both run, start this one with `npm run start -- --port 4173`.
 
 ## Run
 
