@@ -14,7 +14,8 @@ const srgb = (hex) => new Vector3(...[16, 8, 0].map((shift) => ((parseInt(hex.sl
 export const TOON = { glaze: "#cf4a2a", clay: "#f2dcc3", deep: "#9e2c15", light: [0.35, 0.65, 0.7] };
 
 // Bake in a worker: resolves with the maps, reports progress (0..1), and stops when signal aborts.
-export function bakeInWorker({ sectionMm, sectionLengthMm }, relief, { onProgress, signal } = {}) {
+// columns, rows: bake resolution (bakeSurface's defaults when left out).
+export function bakeInWorker({ sectionMm, sectionLengthMm }, relief, { columns, rows, onProgress, signal } = {}) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(new DOMException("Bake canceled.", "AbortError"));
     const worker = new Worker(new URL("./surface.worker.js", import.meta.url), { type: "module" });
@@ -37,6 +38,8 @@ export function bakeInWorker({ sectionMm, sectionLengthMm }, relief, { onProgres
     worker.postMessage({
       points: sectionMm.map(({ x, y }) => ({ x, y })),
       length: sectionLengthMm,
+      columns,
+      rows,
       relief: relief && { data: relief.data, columns: relief.columns, layers: relief.layers, layerMm: relief.layerMm },
     });
   });

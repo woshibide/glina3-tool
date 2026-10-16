@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/background.js"
+  },
   "scripts": {
     "start": "node scripts/start.mjs",
     "build": "vite build",
@@ -11,13 +14,10 @@
     "maps": "node scripts/export-maps.mjs"
   },
   "dependencies": {
-    "mediabunny": "^1.61.5",
     "simplex-noise": "^4.0.3",
-    "three": "^0.186.1",
-    "vue": "^3.5.44"
+    "three": "^0.186.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.10",
     "vite": "^8.3.4"
   }
 }

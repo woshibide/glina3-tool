@@ -3,9 +3,8 @@ import assert from "node:assert/strict";
 import { createCupGeometry } from "../src/scene/cup.js";
 import { LOOK, bakeSurface, sectionRows } from "../src/scene/surface.js";
 import {
-  NIB_PRESETS, UNITS, createStripSpec, layerRelief, rasterizeDesign, validDesign, validNib,
+  UNITS, createStripSpec, layerRelief, rasterizeDesign, validDesign, validNib,
 } from "../src/design/strip.js";
-import { decodeDesign, encodeDesign, packDesign, unpackDesign } from "../src/design/codec.js";
 
 const { sectionMm, sectionLengthMm } = createCupGeometry();
 const spec = createStripSpec(sectionMm);
@@ -87,22 +86,6 @@ test("glaze pools at the foot of raised relief and thins on its edge", () => {
   const top = Math.min(...[0, 1, 2, 3].map((d) => red(drawn, edge + d) - red(plain, edge + d)));
   assert.ok(foot > 0, `foot ${foot}`);
   assert.ok(top < 0, `edge ${top}`);
-});
-
-test("design round-trips through bytes and the share link", async () => {
-  const design = {
-    strokes: [
-      ...NIB_PRESETS.map(({ nib: n }, i) => line(n, 0.1 * i, 0.1 * i + 0.07)),
-      { erase: true, nib: nib("round", 9), points: [-30, 0, 4200, 4096, 4100, 10] },
-    ],
-  };
-  assert.ok(validDesign(design));
-  assert.deepEqual(unpackDesign(packDesign(design)), design);
-  const text = await encodeDesign(design);
-  assert.match(text, /^[A-Za-z0-9_-]+$/);
-  assert.deepEqual(await decodeDesign(text), design);
-  await assert.rejects(decodeDesign("not*valid"), /invalid characters/);
-  await assert.rejects(decodeDesign(text.slice(0, -4)), /damaged|cut short|trailing/);
 });
 
 test("validators reject out-of-range nibs and points", () => {
