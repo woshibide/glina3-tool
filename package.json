@@ -1,0 +1,23 @@
+{
+  "name": "glina-cup-tool",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --strictPort",
+    "test": "node --test",
+    "maps": "node scripts/export-maps.mjs"
+  },
+  "dependencies": {
+    "mediabunny": "^1.61.5",
+    "simplex-noise": "^4.0.3",
+    "three": "^0.186.1",
+    "vue": "^3.5.44"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.10",
+    "vite": "^8.3.4"
+  }
+}

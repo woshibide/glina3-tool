@@ -1,0 +1,62 @@
+/* Public palette. Override on :root, a wrapper, or an individual control. */
+:root,
+[data-ui-theme="light"] {
+  --ui-color-scheme: light;
+  --surface: #f2f2f2;
+  --paper: #ffffff;
+  --ink: #242424;
+  --muted: #626262;
+  --line: #cccccc;
+  --accent: #111111;
+  --soft: #e8e8e8;
+  --danger: #111111;
+  --plot-radius: 4px;
+  /* Two-tone handles stay visible over the full color spectrum. */
+  --color-handle-inner: #ffffff;
+  --color-handle-outer: #171717cc;
+}
+
+[data-ui-theme="dark"] {
+  --ui-color-scheme: dark;
+  --surface: #171717;
+  --paper: #242424;
+  --ink: #ededed;
+  --muted: #bdbdbd;
+  --line: #5c5c5c;
+  --accent: #ffffff;
+  --soft: #3b3b3b;
+  --danger: #ffffff;
+}
+
+/* Resolve fallbacks at each graphic boundary, not only at :root.
+   This lets a local palette override update dependent plot colors as well.
+   Public --plot-* overrides inherit; --_plot-* are internal resolved values. */
+:where(:root, .baza-theme, [data-ui-theme], section, .graphic-panel, .plot-surface,
+  .preview, .limits-editor, .timeline, .color-editor, .picker-panel) {
+  --_selection-bg: var(--selection-bg, var(--accent));
+  --_selection-fg: var(--selection-fg, var(--paper));
+  --_selection-border: var(--selection-border, var(--_selection-bg));
+  --_disabled-fg: var(--disabled-fg, color-mix(in srgb, var(--muted) 60%, var(--paper)));
+  --_plot-surround: var(--plot-surround, color-mix(in srgb, var(--paper) 60%, var(--surface)));
+  --_plot-area: var(--plot-area, var(--paper));
+  --_plot-footer: var(--plot-footer, var(--paper));
+  --_plot-extended: var(--plot-extended, var(--_plot-area));
+  --_plot-grid: var(--plot-grid, color-mix(in srgb, var(--line) 55%, var(--paper)));
+  --_plot-frame: var(--plot-frame, color-mix(in srgb, var(--line) 70%, var(--muted)));
+  --_plot-axis: var(--plot-axis, var(--muted));
+  --_plot-boundary: var(--plot-boundary, var(--muted));
+  --_plot-label: var(--plot-label, var(--muted));
+  --_plot-value: var(--plot-value, var(--ink));
+  --_plot-current: var(--plot-current, var(--accent));
+  --_plot-playhead: var(--plot-playhead, var(--accent));
+  --_plot-hatch: var(--plot-hatch, var(--_plot-axis));
+  --_plot-handle-fill: var(--plot-handle-fill, var(--_plot-area));
+  --_plot-handle-stroke: var(--plot-handle-stroke, var(--_plot-value));
+  --_plot-marker-outline: var(--plot-marker-outline, var(--_plot-area));
+}
+
+.baza-theme {
+  color-scheme: var(--ui-color-scheme, light);
+  color: var(--ink);
+  background: var(--surface);
+}
