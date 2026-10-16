@@ -9,7 +9,7 @@ import { bakeInWorker } from "./scene/materials.js";
 const TURN_SECONDS = 24;
 const MAX_PIXEL_RATIO = 2;
 // At zoom 1 the cup fills about half the view's height; narrower views zoom out so it keeps clear of the sides.
-const FIT_ASPECT = 0.55;
+const FIT_ASPECT = 0.7;
 // Section arc length and outer circumference of the cup in millimetres, rounded up.
 const SECTION_MM = 253;
 const AROUND_MM = 236;

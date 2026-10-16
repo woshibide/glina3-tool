@@ -18,6 +18,8 @@ export const TOON = { glaze: "#cf4a2a", clay: "#f2dcc3", deep: "#9e2c15", light:
 export function bakeInWorker({ sectionMm, sectionLengthMm }, relief, { columns, rows, onProgress, signal } = {}) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(new DOMException("Bake canceled.", "AbortError"));
+    // Vite finds and bundles workers by this `new Worker(new URL(...))` pattern; the local Worker starts it.
+    const Worker = SameOriginWorker;
     const worker = new Worker(new URL("./surface.worker.js", import.meta.url), { type: "module" });
     const stop = () => {
       worker.terminate();
@@ -43,6 +45,18 @@ export function bakeInWorker({ sectionMm, sectionLengthMm }, relief, { columns, 
       relief: relief && { data: relief.data, columns: relief.columns, layers: relief.layers, layerMm: relief.layerMm },
     });
   });
+}
+
+// Browsers start workers only from the page's own origin. On the website's dev server the page comes from Kirby
+// and the modules from Vite on another port, so a same-origin blob imports the worker module instead.
+function SameOriginWorker(url, options) {
+  if (new URL(url, location.href).origin === location.origin) return new globalThis.Worker(url, options);
+  const shim = URL.createObjectURL(new Blob([`import ${JSON.stringify(String(url))};`], { type: "text/javascript" }));
+  const worker = new globalThis.Worker(shim, options);
+  const revoke = () => URL.revokeObjectURL(shim);
+  worker.addEventListener("message", revoke, { once: true });
+  worker.addEventListener("error", revoke, { once: true });
+  return worker;
 }
 
 function texture(data, columns, rows, colorSpace, anisotropy) {
