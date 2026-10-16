@@ -65,15 +65,13 @@ npm run maps -- <folder>  # write the baked maps as PNG (see ../../1_research/3d
 
 ## Background cup
 
-- The cup turns once every 24 s and leans towards the mouse; on phones it follows the tilt.
+- The cup turns once every 24 s and leans towards the mouse; on touch screens it only turns.
   With reduced motion it stands still.
 - The canvas takes no pointer input, so the page above it stays usable; the page sizes it with CSS and fades it in on `onReady`.
 - Bake resolution follows the screen (`bakeSize`): about one texel per device pixel on the cup, 1024 to 4096 per side, so about 3072 x 3328 on a 2x laptop.
   The bake takes about 4 s there; it runs once, at mount.
 - On narrow screens the camera zooms out (`FIT_ASPECT`) so the cup keeps clear of the sides.
-- Android reports tilt right away.
-  iOS asks for permission first, and only from a tap, so the first tap on the page outside links and controls asks; until then the cup only turns.
-  Sideways screens ignore tilt.
+- Phone tilt (gyroscope) is left out on purpose; `ux-research` has the old Android-only version.
 
 ## Decisions to revisit
 

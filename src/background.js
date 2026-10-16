@@ -1,4 +1,4 @@
-// The cup as a page background: the baked cup turns slowly and leans towards the mouse, or the phone's tilt.
+// The cup as a page background: the baked cup turns slowly and leans towards the mouse.
 // No controls and no pointer capture, so the page above it stays fully usable.
 //
 //   const stop = mountCup(canvas, { onReady });   // canvas: sized by CSS; onReady: first frame with the bake
@@ -20,13 +20,6 @@ export function bakeSize(viewHeightPx, maxTexture = 4096) {
   const perMm = (viewHeightPx * 0.5) / 90;
   const fit = (mm) => Math.min(maxTexture, 4096, Math.max(1024, Math.ceil((mm * perMm) / 256) * 256));
   return { columns: fit(AROUND_MM), rows: fit(SECTION_MM) };
-}
-
-// Phone tilt as -1..1 on both axes, held upright at about 45 degrees; null when the screen is turned sideways.
-export function tiltFrom({ beta, gamma }, screenAngle = 0) {
-  if (beta === null || gamma === null || screenAngle % 180 !== 0) return null;
-  const clamp = (v) => Math.max(-1, Math.min(1, v));
-  return { x: clamp(gamma / 30), y: clamp((beta - 45) / 30) };
 }
 
 export function mountCup(canvas, { onReady } = {}) {
@@ -82,20 +75,6 @@ export function mountCup(canvas, { onReady } = {}) {
     target.x = (event.clientX / window.innerWidth) * 2 - 1;
     target.y = (event.clientY / window.innerHeight) * 2 - 1;
   }, { signal });
-  window.addEventListener("deviceorientation", (event) => {
-    const tilt = tiltFrom(event, screen.orientation?.angle ?? 0);
-    if (tilt) Object.assign(target, tilt);
-  }, { signal });
-  // iOS reports tilt only after a permission prompt, which it allows only from a tap. Ask on the first tap
-  // that is not on a link or control, so the prompt never gets in the way of an email or phone link.
-  if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-    const ask = (event) => {
-      if (event.target.closest?.("a, button, input, select, textarea, label")) return;
-      document.removeEventListener("click", ask);
-      DeviceOrientationEvent.requestPermission().catch(() => {});
-    };
-    document.addEventListener("click", ask, { signal });
-  }
 
   const { columns, rows } = bakeSize(
     window.screen.height * Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1),
