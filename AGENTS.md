@@ -13,6 +13,14 @@ It will live on the client's website (Kirby CMS with Vue), on laptops, tablets, 
 - The current phase is the interaction prototype: drawing, baking, sharing, and a mocked order.
   The visual design is deliberately quiet and Wikipedia-like until the website design exists.
 
+## Git
+
+- `main` is the tool as it will ship on the website, in the middle of a strip-down and revamp to fit the site.
+  The website repository (`woshibide/glina3-web`) includes this repository as the `tool/` submodule and tracks `main`.
+- `ux-research` parks the interaction prototype as it was before the revamp (commit `aac9252`).
+  Do not merge it back; cherry-pick single ideas from it when needed.
+- Push here first, then move the pin in the website: `git submodule update --remote tool` in `../www`.
+
 ## Run
 
 ```bash
