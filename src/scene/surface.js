@@ -11,6 +11,9 @@
 //    clay towards the glaze's own deep colour, so thin glaze on ridges shows the clay and pooled glaze
 //    in grooves turns deep and saturated.
 // 4. Glaze surface height = clay height + glaze thickness, so pooled glaze softens the grooves.
+// 5. Drawn relief (optional, per printed layer, see design/strip.js) moves the whole wall outwards.
+//    The geometry carries its shape; here it only steers the glaze: pooling at the foot of raised
+//    shapes, thinning on their edges. Inside the cup the same relief is recessed, so glaze pools in it.
 //
 // Rows follow the section's arc length (v), columns go around the cup (u), matching LatheGeometry.
 import { Color } from "three";
@@ -50,6 +53,11 @@ export const LOOK = {
   clayRoughness: 0.85,
   glazeRoughness: 0.3,
   grainMm: 0.012,
+  // Drawn relief.
+  reliefMm: 1.0, // how far a drawn shape pushes the wall out
+  reliefSoftMm: 1.2, // width of the band where glaze gathers around a shape
+  reliefPool: 2.5, // extra glaze per unit of concave relief curvature (1/mm)
+  reliefThin: 1.0, // glaze lost per unit of convex relief curvature (1/mm)
 };
 
 export function mulberry32(seed) {
@@ -167,7 +175,56 @@ const toLinear = (hex) => new Color(hex);
 
 // Bake albedo (sRGB), normal (tangent space: +x around the cup, +y along the section), and ORM
 // (occlusion, roughness, metalness) as RGBA8 data of columns x rows, plus the float height field.
-export function bakeSurface({ points, length, columns = 2048, rows = 2048, look = LOOK }) {
+// Relief curvature (1/mm, positive concave) per printed layer at the bake's columns, from layerRelief().
+export function reliefCurvature(relief, { columns, layerMm, reliefMm, softMm, radiusMm }) {
+  const { layers } = relief;
+  const field = new Float32Array(layers * columns);
+  for (let l = 0; l < layers; l++) {
+    for (let c = 0; c < columns; c++) {
+      const at = ((c + 0.5) / columns) * relief.columns - 0.5;
+      const k = Math.floor(at);
+      const f = at - k;
+      const a = relief.data[l * relief.columns + ((k % relief.columns) + relief.columns) % relief.columns];
+      const b = relief.data[l * relief.columns + (k + 1) % relief.columns];
+      field[l * columns + c] = ((a * (1 - f) + b * f) / 255) * reliefMm;
+    }
+  }
+  const dx = (2 * Math.PI * radiusMm) / columns;
+  const radius = Math.max(1, Math.round(softMm / 2 / dx));
+  const line = new Float32Array(columns);
+  for (let l = 0; l < layers; l++) {
+    const row = field.subarray(l * columns, (l + 1) * columns);
+    for (let pass = 0; pass < 2; pass++) {
+      line.set(row);
+      let sum = 0;
+      for (let k = -radius; k <= radius; k++) sum += line[(k + columns) % columns];
+      for (let c = 0; c < columns; c++) {
+        row[c] = sum / (2 * radius + 1);
+        sum += line[(c + radius + 1) % columns] - line[(c - radius + columns) % columns];
+      }
+    }
+  }
+  const smooth = new Float32Array(layers * columns);
+  for (let l = 0; l < layers; l++) {
+    for (let c = 0; c < columns; c++) {
+      const at = (j) => field[Math.min(layers - 1, Math.max(0, j)) * columns + c];
+      smooth[l * columns + c] = 0.25 * at(l - 1) + 0.5 * at(l) + 0.25 * at(l + 1);
+    }
+  }
+  const curvature = new Float32Array(layers * columns);
+  for (let l = 0; l < layers; l++) {
+    for (let c = 0; c < columns; c++) {
+      const at = (j, k) => smooth[Math.min(layers - 1, Math.max(0, j)) * columns + ((k + columns) % columns)];
+      const across = (at(l, c + 1) - 2 * at(l, c) + at(l, c - 1)) / (dx * dx);
+      const up = (at(l + 1, c) - 2 * at(l, c) + at(l - 1, c)) / (layerMm * layerMm);
+      curvature[l * columns + c] = across + up;
+    }
+  }
+  return curvature;
+}
+
+// relief: optional per-layer drawing from layerRelief(); onProgress(fraction) reports every few rows.
+export function bakeSurface({ points, length, columns = 2048, rows = 2048, look = LOOK, relief = null, onProgress }) {
   const random = mulberry32(look.seed);
   const noise = createNoise3D(random);
   const rowsInfo = sectionRows(points, length, rows);
@@ -177,6 +234,14 @@ export function bakeSurface({ points, length, columns = 2048, rows = 2048, look 
   const prominence = layerWalks(random, layers, columns, { steps: look.wobbleSteps, carry: 0.5 });
   // Keep boundaries in order: a line never wanders past half the gap to its neighbours.
   const wobble = Math.min(look.wobbleMm, look.layerMm * 0.15);
+
+  let reliefBend = null;
+  if (relief) {
+    if (Math.abs(relief.layerMm - look.layerMm) > 1e-9) throw new Error("Relief layers do not match the bake's layer height.");
+    const wallRadii = rowsInfo.filter((row) => row.face === "wall" && !row.inner).map((row) => row.r);
+    const radiusMm = wallRadii.reduce((a, b) => a + b, 0) / wallRadii.length;
+    reliefBend = reliefCurvature(relief, { columns, layerMm: look.layerMm, reliefMm: look.reliefMm, softMm: look.reliefSoftMm, radiusMm });
+  }
 
   const clay = toLinear(look.clay);
   const glaze = toLinear(look.glaze);
@@ -194,12 +259,14 @@ export function bakeSurface({ points, length, columns = 2048, rows = 2048, look 
   }
 
   for (let j = 0; j < rows; j++) {
+    if (onProgress && j % 64 === 0) onProgress(j / rows);
     const { r, y, ny, inner, face, curvature } = rowsInfo[j];
     let side = inner ? look.glazeInner + look.glazeFloorPool * Math.max(0, ny) : look.glazeOuter;
     side += look.glazeCornerPool * Math.max(0, -curvature);
     side *= Math.max(0.5, 1 - look.glazeEdgeThin * Math.max(0, curvature));
     if (!inner) side *= 0.7 + 0.3 * smoothstep(0, look.glazeFootMm, y);
     const layerAt = Math.floor(y / look.layerMm);
+    const bendRow = reliefBend && face === "wall" && layerAt < relief.layers ? layerAt * columns : -1;
 
     for (let c = 0; c < columns; c++) {
       const i = j * columns + c;
@@ -230,12 +297,16 @@ export function bakeSurface({ points, length, columns = 2048, rows = 2048, look 
       }
 
       const grain = 0.6 * noise(x * 2.5, y * 2.5, z * 2.5) + 0.4 * noise(x * 5 + 17, y * 5, z * 5);
+      // Inside the cup the drawn relief is recessed, so its curvature flips.
+      const bend = bendRow >= 0 ? (inner ? -1 : 1) * reliefBend[bendRow + c] : 0;
+      const concave = Math.max(0, bend);
       let thickness = 0;
       if (face !== "underside") {
         const blotch = 0.6 * noise(x / 18, y / 18, z / 18) + 0.4 * noise(x / 6 + 31, y / 6, z / 6);
         const runs = noise(x / 2.5, y / 30, z / 2.5);
         const pooled = look.glazeRidge + (look.glazeGroove - look.glazeRidge) * groove;
-        thickness = side * pooled * (1 + look.glazeNoise * blotch) * (1 + look.glazeRuns * runs);
+        const bent = (1 + look.reliefPool * concave) * Math.max(0.25, 1 - look.reliefThin * Math.max(0, -bend));
+        thickness = side * bent * pooled * (1 + look.glazeNoise * blotch) * (1 + look.glazeRuns * runs);
         if (!inner) thickness *= smoothstep(look.glazeLineMm - 0.3, look.glazeLineMm + 0.3, y + 0.3 * runs);
         thickness = Math.max(0, thickness);
       }
@@ -252,6 +323,7 @@ export function bakeSurface({ points, length, columns = 2048, rows = 2048, look 
 
       let occlusion = 1 - 0.3 * groove * (1 - 0.7 * cover);
       if (inner) occlusion *= 1 - look.innerShadow * smoothstep(0, topY * 0.8, topY - y);
+      occlusion *= 1 - 0.3 * smoothstep(0, 1.5, concave);
       const roughness = look.clayRoughness + (look.glazeRoughness - look.clayRoughness) * cover + 0.04 * grain;
       orm[i * 4] = Math.round(occlusion * 255);
       orm[i * 4 + 1] = Math.round(Math.min(1, Math.max(0, roughness)) * 255);
@@ -260,7 +332,8 @@ export function bakeSurface({ points, length, columns = 2048, rows = 2048, look 
     }
   }
 
-  // height: glazed surface height in millimetres, kept for map export and future displacement.
+  onProgress?.(1);
+  // height: glazed surface height in millimetres, without the drawn relief (the geometry carries that).
   return { columns, rows, albedo, orm, height, normal: normalFromHeight(height, rowsInfo, columns, rows, length) };
 }
 
