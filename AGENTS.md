@@ -41,7 +41,7 @@ npm run maps -- <folder>  # write the baked maps as PNG (see ../../1_research/3d
 - `src/background.js`: the package entry (`"exports"` in `package.json`).
   `mountCup(canvas, { onReady })` bakes the cup in a worker, turns it, and returns `stop()`.
 - `src/preview.js` exports `showCup(canvas, loader)` as `glina-cup-tool/preview`.
-  Both Kirby and the standalone page use this entry for artwork selection, progress and first-frame reveal.
+  Both Kirby and the standalone page use this entry to load `artwork/2.png`, report progress and reveal the first finished frame.
   The four authored PNGs and blank drawing template live in `artwork/`.
   Follow [the drawing guide](artwork/README.md) when adding designs.
 - `src/main.js` and `index.html`: the standalone preview, mounted the same way the website does it.

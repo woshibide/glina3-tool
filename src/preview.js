@@ -1,14 +1,11 @@
 // Keep the counter visible while Three.js downloads and the surface worker runs.
 import "./preview.css";
+import artworkUrl from "../artwork/2.png?url&no-inline";
 
 export async function showCup(canvas, loader) {
   loader.hidden = false;
   const number = loader.querySelector("span");
   try {
-    const images = Object.values(import.meta.glob(["../artwork/*.{png,jpg,jpeg,webp}", "!../artwork/cup-template.png"], {
-      eager: true, query: "?url&no-inline", import: "default",
-    }));
-    const artworkUrl = images[Math.floor(Math.random() * images.length)];
     const { mountCup } = await import("./background.js");
     mountCup(canvas, {
       artworkUrl,
