@@ -19,10 +19,10 @@ On `main` today it is only the baked cup turning behind the website's coming-soo
   The website repository (`woshibide/glina3-web`) includes this repository as the `tool/` submodule and tracks `main`.
 - `ux-research` parks the interaction prototype as it was before the revamp (commit `aac9252`).
   Do not merge it back; cherry-pick single ideas from it when needed.
-- This folder (`2_development/tool`) is the checkout for editing the tool.
-  `../www/tool` is the website's submodule copy at a pinned commit (detached HEAD); do not edit there.
-- Push here first, then move the pin on the website's `develop` branch: `git submodule update --remote tool` in `../www`, then commit `tool`.
-  The full workflow, both repositories' branches, and the clone steps are in `../www/README.md` ("Repositories and Git").
+- This folder (`glina3-tool`) is the checkout for editing the tool.
+  `../glina3-web/tool` is the website's submodule copy at a pinned commit (detached HEAD); do not edit there.
+- Push here first, then check out the reviewed commit in the website submodule and commit its pin on the website branch.
+  The full workflow, both repositories' branches, and the clone steps are in `../glina3-web/README.md` ("Repositories and Git").
 - The website's dev server also uses port 5173; when both run, start this one with `npm run start -- --port 4173`.
 
 ## Run
@@ -40,7 +40,10 @@ npm run maps -- <folder>  # write the baked maps as PNG (see ../../1_research/3d
 
 - `src/background.js`: the package entry (`"exports"` in `package.json`).
   `mountCup(canvas, { onReady })` bakes the cup in a worker, turns it, and returns `stop()`.
-  The website imports it as the npm workspace package `glina-cup-tool` (see `../www/src/coming-soon.js`).
+- `src/preview.js` exports `showCup(canvas, loader)` as `glina-cup-tool/preview`.
+  Both Kirby and the standalone page use this entry for artwork selection, progress and first-frame reveal.
+  The four authored PNGs and blank drawing template live in `artwork/`.
+  Follow [the drawing guide](artwork/README.md) when adding designs.
 - `src/main.js` and `index.html`: the standalone preview, mounted the same way the website does it.
 - `src/scene/cup.js`: cup body as one lathe section (base, outer wall, rounded rim, inner wall, floor), in metres.
   The profile is resampled by arc length, so `uv.y` follows the surface evenly and maps can repeat at a physical pitch.

@@ -5,11 +5,11 @@ export async function showCup(canvas, loader) {
   loader.hidden = false;
   const number = loader.querySelector("span");
   try {
-    const { mountCup } = await import("./background.js");
     const images = Object.values(import.meta.glob(["../artwork/*.{png,jpg,jpeg,webp}", "!../artwork/cup-template.png"], {
-      eager: true, query: "?url", import: "default",
+      eager: true, query: "?url&no-inline", import: "default",
     }));
     const artworkUrl = images[Math.floor(Math.random() * images.length)];
+    const { mountCup } = await import("./background.js");
     mountCup(canvas, {
       artworkUrl,
       onProgress(fraction) {
