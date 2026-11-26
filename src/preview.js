@@ -6,7 +6,7 @@ export async function showCup(canvas, loader) {
   const number = loader.querySelector("span");
   try {
     const { mountCup } = await import("./background.js");
-    const images = Object.values(import.meta.glob("./artwork/*.{png,jpg,jpeg,webp}", {
+    const images = Object.values(import.meta.glob(["../artwork/*.{png,jpg,jpeg,webp}", "!../artwork/cup-template.png"], {
       eager: true, query: "?url", import: "default",
     }));
     const artworkUrl = images[Math.floor(Math.random() * images.length)];
