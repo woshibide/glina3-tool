@@ -9,11 +9,12 @@
       html { background: #f8f9fa; }
       body { margin: 0; }
       canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; opacity: 0; transition: opacity 700ms ease; }
-      canvas.ready { opacity: 1; }
+      canvas.is-ready { opacity: 1; }
     </style>
   </head>
   <body>
-    <canvas aria-hidden="true"></canvas>
+    <div class="cup-loader" role="progressbar" aria-label="Loading cup" aria-valuenow="0" hidden><span>0</span><small>%</small></div>
+  <canvas aria-hidden="true"></canvas>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

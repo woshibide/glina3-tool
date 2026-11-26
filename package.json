@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/background.js"
+    ".": "./src/background.js",
+    "./preview": "./src/preview.js"
   },
   "scripts": {
     "start": "node scripts/start.mjs",

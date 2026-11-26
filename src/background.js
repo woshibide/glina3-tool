@@ -6,6 +6,8 @@
 import { DEFAULT_CAMERA, createStage } from "./scene/stage.js";
 import { bakeInWorker } from "./scene/materials.js";
 
+import { loadArtwork } from "./design/artwork.js";
+
 const TURN_SECONDS = 24;
 const MAX_PIXEL_RATIO = 2;
 // At zoom 1 the cup fills about half the view's height; narrower views zoom out so it keeps clear of the sides.
@@ -22,15 +24,16 @@ export function bakeSize(viewHeightPx, maxTexture = 4096) {
   return { columns: fit(AROUND_MM), rows: fit(SECTION_MM) };
 }
 
-export function mountCup(canvas, { onReady } = {}) {
+export function mountCup(canvas, { artworkUrl, onProgress, onReady, onError = console.error } = {}) {
   const stage = createStage(canvas);
   stage.setCamera(DEFAULT_CAMERA);
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-  const view = { rotation: 0, offset: 0, tilt: [0, 0] };
+  const view = { rotation: artworkUrl ? (stage.frontU() - 0.5) * 2 * Math.PI : 0, offset: 0, tilt: [0, 0] };
   const target = { x: 0, y: 0 };
   const controller = new AbortController();
   const { signal } = controller;
   let ready = false;
+  let firstFrame = true;
   let needsRender = true;
   let request = 0;
   let last = 0;
@@ -67,6 +70,10 @@ export function mountCup(canvas, { onReady } = {}) {
       { transparent: true },
     );
     needsRender = false;
+    if (firstFrame) {
+      firstFrame = false;
+      onReady?.();
+    }
   }
   request = requestAnimationFrame(frame);
 
@@ -80,22 +87,36 @@ export function mountCup(canvas, { onReady } = {}) {
     window.screen.height * Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1),
     stage.renderer.capabilities.maxTextureSize,
   );
-  bakeInWorker(stage.section, null, { signal, columns, rows })
-    .then((surface) => {
-      stage.setSurface(surface);
-      ready = true;
-      needsRender = true;
-      // The first frame with the glaze is drawn before the page is told, so a fade-in never shows plain clay.
-      requestAnimationFrame(() => onReady?.());
-    })
-    .catch((error) => {
-      if (error.name !== "AbortError") console.error(error);
-    });
+  async function prepare() {
+    let relief = null;
+    if (artworkUrl) {
+      try {
+        relief = await loadArtwork(artworkUrl, stage, signal);
+      } catch (error) {
+        if (signal.aborted) return;
+        console.warn("Cup artwork unavailable.", error);
+      }
+      if (signal.aborted) return;
+      if (relief) stage.setRelief(relief);
+    }
+    const surface = await bakeInWorker(stage.section, relief, { signal, columns, rows, onProgress });
+    if (signal.aborted) return;
+    stage.setSurface(surface);
+    ready = true;
+  }
 
-  return function stop() {
+  prepare().catch(error => {
+    if (signal.aborted) return;
+    stop();
+    onError(error);
+  });
+
+  return stop;
+
+  function stop() {
     controller.abort();
     cancelAnimationFrame(request);
     observer.disconnect();
     stage.dispose();
-  };
+  }
 }
